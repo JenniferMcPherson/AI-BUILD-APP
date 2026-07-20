@@ -24,12 +24,40 @@ export async function regenerateProjectFiles(projectId: string) {
   const files = await generateProjectFiles(planData, project.name);
   if (!files || files.length === 0) return null;
 
+  const lastVersion = await db.projectVersion.findFirst({
+    where: { projectId },
+    orderBy: { number: "desc" },
+    select: { number: true },
+  });
+  const nextVersion = (lastVersion?.number ?? 0) + 1;
+
   await db.$transaction([
     db.projectFile.deleteMany({ where: { projectId } }),
     db.projectFile.createMany({
       data: files.map((f) => ({ projectId, path: f.path, content: f.content })),
     }),
+    db.projectVersion.create({
+      data: { projectId, number: nextVersion, files },
+    }),
     db.project.update({ where: { id: projectId }, data: { status: "READY" } }),
+  ]);
+
+  return db.projectFile.findMany({ where: { projectId }, orderBy: { path: "asc" } });
+}
+
+export async function restoreProjectVersion(projectId: string, versionId: string) {
+  const version = await db.projectVersion.findFirst({
+    where: { id: versionId, projectId },
+  });
+  if (!version) return null;
+
+  const files = version.files as { path: string; content: string }[];
+
+  await db.$transaction([
+    db.projectFile.deleteMany({ where: { projectId } }),
+    db.projectFile.createMany({
+      data: files.map((f) => ({ projectId, path: f.path, content: f.content })),
+    }),
   ]);
 
   return db.projectFile.findMany({ where: { projectId }, orderBy: { path: "asc" } });

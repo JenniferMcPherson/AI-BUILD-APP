@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { MessagesSquare, Code2 } from "lucide-react";
+import { MessagesSquare, Code2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectChat, type ChatMessage } from "@/components/workspace/project-chat";
 import { ProjectPlanPanel, type PlanData } from "@/components/workspace/project-plan-panel";
 import { ProjectCodeView, type ProjectFile } from "@/components/workspace/project-code-view";
+import { ProjectPreview } from "@/components/workspace/project-preview";
 
-type Tab = "builder" | "code";
+type Tab = "builder" | "code" | "preview";
 
 export function WorkspaceShell({
   projectId,
@@ -23,7 +24,14 @@ export function WorkspaceShell({
   initialFiles: ProjectFile[];
 }) {
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [previewSignal, setPreviewSignal] = useState(0);
+  const [hasFiles, setHasFiles] = useState(initialFiles.length > 0);
   const [tab, setTab] = useState<Tab>("builder");
+
+  function handleFilesChanged() {
+    setHasFiles(true);
+    setPreviewSignal((n) => n + 1);
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -34,9 +42,12 @@ export function WorkspaceShell({
         <TabButton active={tab === "code"} onClick={() => setTab("code")} icon={Code2}>
           Code
         </TabButton>
+        <TabButton active={tab === "preview"} onClick={() => setTab("preview")} icon={Eye}>
+          Preview
+        </TabButton>
       </div>
 
-      {tab === "builder" ? (
+      <div className={cn("flex flex-1 overflow-hidden", tab !== "builder" && "hidden")}>
         <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_360px]">
           <div className="flex flex-col overflow-hidden border-r border-border">
             <ProjectChat
@@ -52,9 +63,25 @@ export function WorkspaceShell({
             refreshSignal={refreshSignal}
           />
         </div>
-      ) : (
-        <ProjectCodeView projectId={projectId} initialFiles={initialFiles} hasPlan={Boolean(initialPlan)} />
-      )}
+      </div>
+
+      <div className={cn("flex flex-1 overflow-hidden", tab !== "code" && "hidden")}>
+        <ProjectCodeView
+          projectId={projectId}
+          initialFiles={initialFiles}
+          hasPlan={Boolean(initialPlan)}
+          onFilesChanged={handleFilesChanged}
+        />
+      </div>
+
+      <div className={cn("flex flex-1 overflow-hidden", tab !== "preview" && "hidden")}>
+        <ProjectPreview
+          projectId={projectId}
+          hasFiles={hasFiles}
+          refreshSignal={previewSignal}
+          onRefresh={() => setPreviewSignal((n) => n + 1)}
+        />
+      </div>
     </div>
   );
 }

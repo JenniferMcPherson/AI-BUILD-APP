@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Code2, FileCode, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Code2, FileCode, History, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type ProjectFile = { path: string; content: string };
+type Version = { id: string; number: number; createdAt: string };
 
 function languageFor(path: string) {
   if (path.endsWith(".html")) return "html";
@@ -19,17 +20,32 @@ export function ProjectCodeView({
   projectId,
   initialFiles,
   hasPlan,
+  onFilesChanged,
 }: {
   projectId: string;
   initialFiles: ProjectFile[];
   hasPlan: boolean;
+  onFilesChanged?: () => void;
 }) {
   const [files, setFiles] = useState<ProjectFile[]>(initialFiles);
   const [selectedPath, setSelectedPath] = useState<string | null>(initialFiles[0]?.path ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<Version[] | null>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
 
   const selected = files.find((f) => f.path === selectedPath) ?? files[0] ?? null;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
+        setHistoryOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function generate() {
     setLoading(true);
@@ -43,12 +59,70 @@ export function ProjectCodeView({
       }
       setFiles(data.files);
       setSelectedPath(data.files[0]?.path ?? null);
+      onFilesChanged?.();
     } catch {
       setError("Couldn't reach the AI developer. Please try again.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function toggleHistory() {
+    const next = !historyOpen;
+    setHistoryOpen(next);
+    if (next && versions === null) {
+      const res = await fetch(`/api/projects/${projectId}/versions`);
+      if (res.ok) {
+        const data = await res.json();
+        setVersions(data.versions);
+      }
+    }
+  }
+
+  async function restore(versionId: string) {
+    const res = await fetch(`/api/projects/${projectId}/versions/${versionId}/restore`, {
+      method: "POST",
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    setFiles(data.files);
+    setSelectedPath(data.files[0]?.path ?? null);
+    setHistoryOpen(false);
+    onFilesChanged?.();
+  }
+
+  const historyButton = (
+    <div className="relative" ref={historyRef}>
+      <Button variant="ghost" size="icon" onClick={toggleHistory} aria-label="Version history">
+        <History className="h-3.5 w-3.5" />
+      </Button>
+      {historyOpen && (
+        <div className="absolute left-0 top-full z-10 mt-1 w-64 rounded-md border border-border bg-surface p-1 shadow-lg">
+          {versions === null ? (
+            <p className="px-3 py-2 text-xs text-muted">Loading...</p>
+          ) : versions.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted">No versions yet.</p>
+          ) : (
+            versions.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => restore(v.id)}
+                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-surface-hover"
+              >
+                <span>
+                  Version {v.number}
+                  <span className="ml-2 text-xs text-muted">
+                    {new Date(v.createdAt).toLocaleString()}
+                  </span>
+                </span>
+                <RotateCcw className="h-3.5 w-3.5 shrink-0 text-muted" />
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   if (files.length === 0) {
     return (
@@ -77,9 +151,18 @@ export function ProjectCodeView({
       <div className="flex w-56 shrink-0 flex-col border-r border-border">
         <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted">Files</span>
-          <Button variant="ghost" size="icon" onClick={generate} disabled={loading} aria-label="Regenerate code">
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          </Button>
+          <div className="flex items-center">
+            {historyButton}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={generate}
+              disabled={loading}
+              aria-label="Regenerate code"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            </Button>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
           {files.map((file) => (

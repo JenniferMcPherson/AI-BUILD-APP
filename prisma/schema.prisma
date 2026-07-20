@@ -76,10 +76,11 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner    User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   messages Message[]
   plan     ProjectPlan?
   files    ProjectFile[]
+  versions ProjectVersion[]
 
   @@index([ownerId])
   @@map("projects")
@@ -118,6 +119,23 @@ model ProjectFile {
 
   @@unique([projectId, path])
   @@map("project_files")
+}
+
+/// An immutable snapshot of a project's generated files, taken each time
+/// code is (re)generated, so earlier prototypes can be restored.
+model ProjectVersion {
+  id        String   @id @default(cuid())
+  projectId String
+  number    Int
+  /// Array of { path: string, content: string }
+  files     Json
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, number])
+  @@index([projectId, createdAt])
+  @@map("project_versions")
 }
 
 /// A single turn in a project's AI builder conversation.
