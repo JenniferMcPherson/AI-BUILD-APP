@@ -1,20 +1,45 @@
 # Forge
 
-Forge is the foundation of an AI-powered software creation platform: describe an app in
-plain English and Forge plans, builds, tests, and (eventually) deploys it.
+Forge is an AI-powered software creation platform: describe an app in plain English and
+Forge plans it, builds a working prototype, lets you preview and iterate on it, and helps
+you ship it — as a hosted URL, a GitHub repo, or a ZIP download.
 
-This repository currently contains the **platform foundation**: authentication, the
-dashboard, project workspaces, and the AI builder chat interface. Later phases will add
-live preview, code generation, deployment, billing, community, and the marketplace.
+## What's built
+
+- **Auth** — email/password with bcrypt + signed JWT session cookies, defense-in-depth
+  route protection (`proxy.ts` + a Data Access Layer checked on every protected route).
+- **AI builder** — a per-project chat with an AI architect that turns a conversation into
+  a structured plan (features, data model, build order), then an AI developer that
+  generates a real HTML/CSS/JS prototype from that plan.
+- **Workspace** — Builder (chat + plan), Code (file explorer + viewer + version history
+  with restore), and Preview (live iframe) tabs for every project.
+- **Exports** — ZIP download, a hosted URL (`/p/[slug]`) you can publish/unpublish, and
+  push-to-GitHub via an OAuth App connection.
+- **Billing** — Stripe subscriptions across Free/Pro/Business/Enterprise, a pricing page,
+  a billing portal, and real plan-based project limits.
+- **Community** — public creator profiles (`/u/[username]`), a Discover feed of published
+  projects, a Marketplace (list, browse by category, star ratings/reviews, "use as
+  template" cloning), and an educational Library (searchable articles with citations).
+- **Growth** — a founder invite system (generate codes, invite-only signup mode via
+  `INVITE_ONLY`), per-project view analytics on the dashboard, and SEO (`sitemap.xml`,
+  `robots.txt`, per-page metadata).
+
+Every AI/billing/GitHub integration follows the same contract: **without the relevant API
+key configured, the feature degrades to a clear, non-crashing message instead of
+erroring.** You can run and click through the entire app with zero external services
+configured.
 
 ## Stack
 
 - **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS v4
 - **Backend:** Next.js Route Handlers + Server Actions, Node.js
 - **Database:** PostgreSQL via Prisma ORM 7
-- **Auth:** Custom stateless session auth (bcrypt password hashing + signed JWT session
-  cookies), following the [official Next.js authentication guide](https://nextjs.org/docs/app/guides/authentication)
-- **AI:** Anthropic Claude via `@anthropic-ai/sdk`
+- **Auth:** Custom stateless session auth (bcrypt + signed JWT cookies), following the
+  [official Next.js authentication guide](https://nextjs.org/docs/app/guides/authentication)
+- **AI:** Anthropic Claude via `@anthropic-ai/sdk` (project plans + code generation use
+  forced tool-use for structured output)
+- **Billing:** Stripe (Checkout, Billing Portal, webhooks)
+- **Other:** JSZip (ZIP export), GitHub REST API (OAuth App + Contents API)
 
 ## Getting started
 
@@ -26,25 +51,20 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy `.env.example` to `.env` and fill in the values:
-
 ```bash
 cp .env.example .env
 ```
 
-- `DATABASE_URL` — a PostgreSQL connection string.
-- `SESSION_SECRET` — generate with `openssl rand -base64 32`.
-- `ANTHROPIC_API_KEY` — optional. Without it, the AI builder chat still works end-to-end
-  (messages persist, UI is fully functional) but responds with a message explaining that
-  AI responses aren't enabled yet, instead of a real model reply.
+At minimum, set `DATABASE_URL` and `SESSION_SECRET` (generate with
+`openssl rand -base64 32`). Everything else — `ANTHROPIC_API_KEY`,
+`GITHUB_CLIENT_ID`/`SECRET`, `STRIPE_*` — is optional; see `.env.example` for what each
+one unlocks and how the app behaves without it.
 
 ### 3. Set up the database
 
 ```bash
-npx prisma migrate dev
+npm run db:migrate
 ```
-
-This creates the `users`, `accounts`, `projects`, and `messages` tables.
 
 ### 4. Run the dev server
 
@@ -57,57 +77,56 @@ Visit [http://localhost:3000](http://localhost:3000).
 ## Project structure
 
 ```
-prisma/schema.prisma        Database schema (User, Account, Project, Message)
-src/proxy.ts                 Route protection (Next.js 16's renamed Middleware)
+prisma/schema.prisma          Database schema
+src/proxy.ts                   Route protection (Next.js 16's renamed Middleware)
 src/lib/
-  db.ts                      Prisma client singleton (pg driver adapter)
-  session.ts                 JWT session cookie encrypt/decrypt/create/delete
-  dal.ts                     Data Access Layer — verifySession(), getCurrentUser()
-  password.ts                bcrypt hashing
-  ai.ts                      Anthropic client wrapper for the AI builder
-  validations.ts             Zod schemas for forms
+  db.ts, session.ts, dal.ts    Prisma client, JWT sessions, Data Access Layer
+  ai.ts, plan.ts, files.ts     AI chat / plan generation / code generation
+  stripe.ts, github.ts         Billing and GitHub integration helpers
+  markdown.ts                  Dependency-free content format for Library articles
+  invite.ts                    Founder invite code generation
 src/app/
-  page.tsx                   Marketing landing page
-  (auth)/login, register     Auth pages (Server Actions: src/app/actions/auth.ts)
-  (dashboard)/dashboard      Protected dashboard — lists a user's projects
-  (dashboard)/projects/[id]  Project workspace — AI builder chat
-  api/projects/[id]/messages AI builder chat API route
+  page.tsx, pricing/, discover/, marketplace/, library/, u/[username]/
+                                Public marketing + community pages
+  (auth)/login, register       Auth pages
+  (dashboard)/dashboard, projects/[id], settings
+                                Protected app (project list, workspace, account settings)
+  api/                         Route Handlers: AI chat/plan/files, exports, previews,
+                                GitHub OAuth, Stripe webhook
+  p/[slug]/[...path]           Public hosted-URL route for published projects
+  sitemap.ts, robots.ts        SEO metadata routes
 src/components/
-  ui/                        Design system primitives (Button, Card, Dialog, ...)
-  dashboard/                 Sidebar, Topbar, New Project dialog
-  workspace/                 AI builder chat UI
+  ui/                          Design system primitives (Button, Card, Dialog, ...)
+  workspace/                   Chat, plan panel, code view, preview, export menu
+  marketplace/, library/, settings/, billing/, dashboard/
 ```
 
 ## Design decisions worth knowing
 
-- **Sessions are stateless JWTs in an httpOnly cookie**, not a third-party auth library.
-  This keeps the auth stack dependency-free and fully under our control while we're still
-  early; the `Account` model already exists in the schema so OAuth providers (Google,
-  GitHub, etc.) can be added later without a migration.
-- **`proxy.ts`** is Next.js 16's renamed `middleware.ts` — it performs optimistic route
-  protection (redirects unauthenticated users away from `/dashboard` and `/projects/*`,
-  and authenticated users away from `/login` and `/register`). Actual authorization is
-  re-checked in the Data Access Layer (`verifySession`) on every protected page and API
-  route, per Next.js's recommended defense-in-depth pattern.
-- **The AI builder never throws when `ANTHROPIC_API_KEY` is unset.** It's a real,
-  persisted chat (backed by the `Message` table) from day one; only the model call itself
-  is stubbed out until a key is configured.
+- **Sessions are stateless JWTs in an httpOnly cookie**, not a third-party auth library —
+  keeps the auth stack dependency-free while still early. The `Account` model already
+  supports OAuth provider tokens (used today for GitHub export).
+- **`proxy.ts`** is Next.js 16's renamed `middleware.ts`. It does optimistic route
+  protection; real authorization is re-checked via the Data Access Layer
+  (`verifySession`) on every protected page and API route.
+- **Generated prototypes are static HTML/CSS/JS**, not full Next.js apps — this is what
+  makes in-browser live preview, a same-origin hosted URL, and a plain ZIP export all
+  possible without a build/sandbox execution service. `withBaseHref()` (`src/lib/html.ts`)
+  makes relative asset links resolve correctly regardless of trailing slash.
+- **Library article content** is a tiny non-Markdown format (blank-line paragraphs,
+  `## heading`, `- bullet`, `**bold**`) parsed into blocks and rendered as React elements
+  — never `dangerouslySetInnerHTML` — so user-authored content has no HTML-injection
+  surface.
+- **Every external integration degrades gracefully.** Missing `ANTHROPIC_API_KEY`,
+  `STRIPE_SECRET_KEY`, or `GITHUB_CLIENT_ID` never throws — each surfaces a specific,
+  actionable message in the UI instead.
 
 ## Scripts
 
 ```bash
-npm run dev         # start the dev server
-npm run build        # production build
-npm run lint          # eslint
-npm run db:migrate   # prisma migrate dev
-npm run db:studio    # prisma studio (browse the database)
+npm run dev          # start the dev server
+npm run build         # production build
+npm run lint           # eslint
+npm run db:migrate    # prisma migrate dev
+npm run db:studio     # prisma studio (browse the database)
 ```
-
-## What's next
-
-See the project owner for the approved roadmap. Planned next steps, in order:
-1. Live project preview + code generation
-2. GitHub / ZIP / hosted-URL export
-3. Billing (Free / Pro / Business / Enterprise plans)
-4. Community (creator profiles, discovery, marketplace)
-5. Educational library

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { withBaseHref } from "@/lib/html";
 
@@ -42,6 +43,12 @@ export async function GET(
   const content = filePath.endsWith(".html")
     ? withBaseHref(file.content, `/p/${slug}/`)
     : file.content;
+
+  if (filePath === "index.html") {
+    after(async () => {
+      await db.project.update({ where: { id: project.id }, data: { viewCount: { increment: 1 } } });
+    });
+  }
 
   return new NextResponse(content, {
     headers: {

@@ -1,15 +1,19 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signup } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [state, action, pending] = useActionState(signup, undefined);
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite") ?? "";
 
   return (
     <Card>
@@ -47,6 +51,18 @@ export default function RegisterPage() {
               </div>
             )}
           </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="inviteCode">
+              Invite code <span className="font-normal text-muted">(optional)</span>
+            </Label>
+            <Input
+              id="inviteCode"
+              name="inviteCode"
+              defaultValue={inviteCode}
+              placeholder="ABCD1234"
+              className="uppercase"
+            />
+          </div>
           {state?.message && <p className="text-xs text-danger">{state.message}</p>}
           <Button type="submit" disabled={pending} className="mt-2">
             {pending ? "Creating account..." : "Create account"}
@@ -60,5 +76,13 @@ export default function RegisterPage() {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

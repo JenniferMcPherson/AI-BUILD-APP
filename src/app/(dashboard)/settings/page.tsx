@@ -8,6 +8,7 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { PasswordForm } from "@/components/settings/password-form";
 import { DangerZone } from "@/components/settings/danger-zone";
 import { ManageBillingButton } from "@/components/billing/manage-billing-button";
+import { InviteList } from "@/components/settings/invite-list";
 
 export default async function SettingsPage() {
   const { userId } = await verifySession();
@@ -21,7 +22,12 @@ export default async function SettingsPage() {
       bio: true,
       planTier: true,
       passwordHash: true,
+      isFoundingMember: true,
       _count: { select: { projects: true } },
+      invitesSent: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, code: true, usedAt: true },
+      },
     },
   });
 
@@ -62,6 +68,25 @@ export default async function SettingsPage() {
             <Link href="/pricing">View plans</Link>
           </Button>
           <ManageBillingButton className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-hover disabled:opacity-50" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Invites</CardTitle>
+          <CardDescription>
+            Invite people to Forge. Anyone who signs up with your code becomes a founding member
+            {user.isFoundingMember && " — like you"}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InviteList
+            initialCodes={user.invitesSent.map((i) => ({
+              id: i.id,
+              code: i.code,
+              usedAt: i.usedAt ? i.usedAt.toISOString() : null,
+            }))}
+          />
         </CardContent>
       </Card>
 

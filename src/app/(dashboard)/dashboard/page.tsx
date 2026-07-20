@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Eye, Rocket, Store } from "lucide-react";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +23,10 @@ export default async function DashboardPage() {
     orderBy: { updatedAt: "desc" },
   });
 
+  const totalViews = projects.reduce((sum, p) => sum + p.viewCount, 0);
+  const publishedCount = projects.filter((p) => p.status === "PUBLISHED").length;
+  const listedCount = projects.filter((p) => p.listedInMarketplace).length;
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 md:p-8">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -34,6 +38,15 @@ export default async function DashboardPage() {
         </div>
         <NewProjectDialog />
       </div>
+
+      {projects.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatTile icon={Sparkles} label="Projects" value={projects.length} />
+          <StatTile icon={Rocket} label="Published" value={publishedCount} />
+          <StatTile icon={Store} label="In marketplace" value={listedCount} />
+          <StatTile icon={Eye} label="Total views" value={totalViews} />
+        </div>
+      )}
 
       {projects.length === 0 ? (
         <Card className="flex flex-col items-center gap-3 border-dashed py-16 text-center">
@@ -65,10 +78,16 @@ export default async function DashboardPage() {
                     {project.description || "No description yet."}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex items-center justify-between">
                   <p className="text-xs text-muted">
                     Updated {project.updatedAt.toLocaleDateString()}
                   </p>
+                  {project.status === "PUBLISHED" && (
+                    <span className="flex items-center gap-1 text-xs text-muted">
+                      <Eye className="h-3.5 w-3.5" />
+                      {project.viewCount}
+                    </span>
+                  )}
                 </CardContent>
               </Card>
             </Link>
@@ -76,5 +95,29 @@ export default async function DashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 py-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-hover text-brand">
+          <Icon className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-lg font-semibold leading-none text-foreground">{value}</p>
+          <p className="mt-0.5 text-xs text-muted">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

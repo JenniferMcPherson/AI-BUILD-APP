@@ -12,7 +12,15 @@ import { cn } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  return { title: `${slug} — Marketplace — Forge` };
+  const project = await db.project.findFirst({
+    where: { slug, listedInMarketplace: true },
+    select: { name: true, description: true },
+  });
+  if (!project) return { title: "Listing — Forge" };
+  return {
+    title: `${project.name} — Marketplace — Forge`,
+    description: project.description ?? `Use ${project.name} as a starting point for your own project.`,
+  };
 }
 
 export default async function MarketplaceListingPage({

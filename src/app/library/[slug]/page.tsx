@@ -9,8 +9,9 @@ import { DeleteArticleButton } from "@/components/library/delete-article-button"
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await db.article.findUnique({ where: { slug }, select: { title: true } });
-  return { title: article ? `${article.title} — Forge Library` : "Article — Forge" };
+  const article = await db.article.findUnique({ where: { slug }, select: { title: true, excerpt: true } });
+  if (!article) return { title: "Article — Forge" };
+  return { title: `${article.title} — Forge Library`, description: article.excerpt };
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {

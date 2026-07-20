@@ -33,13 +33,36 @@ export async function signup(
     return { message: "An account with this email already exists." };
   }
 
+  const inviteOnly = process.env.INVITE_ONLY === "true";
+  const rawInviteCode = formData.get("inviteCode");
+  const inviteCode = typeof rawInviteCode === "string" ? rawInviteCode.trim().toUpperCase() : "";
+
+  if (inviteOnly && !inviteCode) {
+    return { message: "An invite code is required to sign up right now." };
+  }
+
+  let invite = null;
+  if (inviteCode) {
+    invite = await db.inviteCode.findFirst({ where: { code: inviteCode, usedByUserId: null } });
+    if (!invite) {
+      return { message: "That invite code is invalid or has already been used." };
+    }
+  }
+
   const passwordHash = await hashPassword(password);
   const username = withUniqueSuffix(slugify(name));
 
   const user = await db.user.create({
-    data: { name, email, passwordHash, username },
+    data: { name, email, passwordHash, username, isFoundingMember: Boolean(invite) },
     select: { id: true },
   });
+
+  if (invite) {
+    await db.inviteCode.update({
+      where: { id: invite.id },
+      data: { usedByUserId: user.id, usedAt: new Date() },
+    });
+  }
 
   await createSession(user.id);
   redirect("/dashboard");

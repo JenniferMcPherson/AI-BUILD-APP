@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getOptionalSession } from "@/lib/dal";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 function initials(name: string) {
   return name
@@ -16,7 +17,12 @@ function initials(name: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  return { title: `${username} — Forge` };
+  const user = await db.user.findUnique({ where: { username }, select: { name: true, bio: true } });
+  if (!user) return { title: `${username} — Forge` };
+  return {
+    title: `${user.name} (@${username}) — Forge`,
+    description: user.bio ?? `${user.name}'s projects, built with Forge.`,
+  };
 }
 
 export default async function CreatorProfilePage({
@@ -34,6 +40,7 @@ export default async function CreatorProfilePage({
       username: true,
       bio: true,
       createdAt: true,
+      isFoundingMember: true,
       projects: {
         where: { status: "PUBLISHED" },
         orderBy: { updatedAt: "desc" },
@@ -54,7 +61,10 @@ export default async function CreatorProfilePage({
             {initials(user.name) || "U"}
           </span>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{user.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-tight">{user.name}</h1>
+              {user.isFoundingMember && <Badge>Founding member</Badge>}
+            </div>
             <p className="text-sm text-muted">@{user.username}</p>
             {user.bio && <p className="mt-2 max-w-xl text-sm text-foreground">{user.bio}</p>}
             <p className="mt-2 text-xs text-muted">

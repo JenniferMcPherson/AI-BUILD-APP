@@ -42,6 +42,7 @@ model User {
   passwordHash           String?
   image                  String?
   planTier               PlanTier  @default(FREE)
+  isFoundingMember       Boolean   @default(false)
   stripeCustomerId       String?   @unique
   stripeSubscriptionId   String?
   stripePriceId          String?
@@ -49,19 +50,38 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  accounts Account[]
-  projects Project[]
-  reviews  Review[]
-  articles Article[]
+  accounts      Account[]
+  projects      Project[]
+  reviews       Review[]
+  articles      Article[]
+  invitesSent   InviteCode[] @relation("InvitesSent")
+  invitedByCode InviteCode?  @relation("InviteUsed")
 
   @@map("users")
+}
+
+/// A single-use invite code a user can generate and share. Redeeming one at
+/// signup marks the new account as a founding member.
+model InviteCode {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  createdByUserId String
+  usedByUserId    String?   @unique
+  createdAt       DateTime  @default(now())
+  usedAt          DateTime?
+
+  createdBy User  @relation("InvitesSent", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  usedBy    User? @relation("InviteUsed", fields: [usedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdByUserId])
+  @@map("invite_codes")
 }
 
 /// OAuth / external identity provider links (Google, GitHub, etc.).
 /// Not yet wired to a live provider, but modeled now so social login
 /// can be added without a schema migration later.
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   provider          String
   providerAccountId String
@@ -86,6 +106,7 @@ model Project {
   ownerId             String
   listedInMarketplace Boolean       @default(false)
   category            String?
+  viewCount           Int           @default(0)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
