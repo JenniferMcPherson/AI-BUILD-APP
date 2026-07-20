@@ -33,18 +33,22 @@ enum MessageRole {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  name           String
-  email          String    @unique
-  emailVerified  DateTime?
-  passwordHash   String?
-  image          String?
-  planTier       PlanTier  @default(FREE)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  name                   String
+  email                  String    @unique
+  emailVerified          DateTime?
+  passwordHash           String?
+  image                  String?
+  planTier               PlanTier  @default(FREE)
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  accounts       Account[]
-  projects       Project[]
+  accounts Account[]
+  projects Project[]
 
   @@map("users")
 }

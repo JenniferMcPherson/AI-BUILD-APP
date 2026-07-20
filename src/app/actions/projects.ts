@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { slugify, withUniqueSuffix } from "@/lib/slug";
 import { CreateProjectSchema } from "@/lib/validations";
+import { PLAN_LIMITS } from "@/lib/stripe";
 
 export type CreateProjectState =
   | {
@@ -27,6 +28,17 @@ export async function createProject(
 
   if (!validatedFields.success) {
     return { errors: validatedFields.error.flatten().fieldErrors };
+  }
+
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  const limit = PLAN_LIMITS[user.planTier];
+  if (limit !== null) {
+    const projectCount = await db.project.count({ where: { ownerId: userId } });
+    if (projectCount >= limit) {
+      return {
+        message: `You've reached the ${limit}-project limit on the ${user.planTier.toLowerCase()} plan. Upgrade to create more.`,
+      };
+    }
   }
 
   const { name, description } = validatedFields.data;
