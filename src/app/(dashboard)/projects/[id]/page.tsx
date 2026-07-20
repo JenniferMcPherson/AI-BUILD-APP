@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Rocket } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/workspace/workspace-shell";
+import { ExportMenu } from "@/components/workspace/export-menu";
 import type { PlanData } from "@/components/workspace/project-plan-panel";
 
 const statusLabel: Record<string, string> = {
@@ -55,10 +55,12 @@ export default async function ProjectWorkspacePage({
             )}
           </div>
         </div>
-        <Button variant="secondary" disabled className="hidden sm:inline-flex">
-          <Rocket className="h-4 w-4" />
-          Deploy (soon)
-        </Button>
+        <ExportMenu
+          projectId={project.id}
+          projectSlug={project.slug}
+          initialStatus={project.status}
+          hasFiles={project.files.length > 0}
+        />
       </div>
 
       <WorkspaceShell

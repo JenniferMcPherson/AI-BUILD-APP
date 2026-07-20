@@ -64,3 +64,32 @@ export async function deleteProject(projectId: string) {
 
   revalidatePath("/dashboard");
 }
+
+export async function publishProject(projectId: string) {
+  const { userId } = await verifySession();
+
+  const project = await db.project.findFirst({
+    where: { id: projectId, ownerId: userId },
+    include: { _count: { select: { files: true } } },
+  });
+
+  if (!project) return { error: "Project not found." };
+  if (project._count.files === 0) {
+    return { error: "Generate code before publishing." };
+  }
+
+  await db.project.update({ where: { id: projectId }, data: { status: "PUBLISHED" } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
+export async function unpublishProject(projectId: string) {
+  const { userId } = await verifySession();
+
+  const project = await db.project.findFirst({ where: { id: projectId, ownerId: userId } });
+  if (!project) return { error: "Project not found." };
+
+  await db.project.update({ where: { id: projectId }, data: { status: "READY" } });
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}

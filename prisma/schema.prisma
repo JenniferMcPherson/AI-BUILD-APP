@@ -57,6 +57,9 @@ model Account {
   userId            String
   provider          String
   providerAccountId String
+  /// OAuth access token for provider APIs (e.g. pushing to GitHub on the
+  /// user's behalf). Plaintext for now — production should encrypt at rest.
+  accessToken       String?
   createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
