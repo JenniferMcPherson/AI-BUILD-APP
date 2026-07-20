@@ -15,9 +15,11 @@ export type ChatMessage = {
 export function ProjectChat({
   projectId,
   initialMessages,
+  onReply,
 }: {
   projectId: string;
   initialMessages: ChatMessage[];
+  onReply?: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -61,6 +63,7 @@ export function ProjectChat({
         { id: data.userMessage.id, role: "USER", content: data.userMessage.content },
         { id: data.assistantMessage.id, role: "ASSISTANT", content: data.assistantMessage.content },
       ]);
+      onReply?.();
     } catch {
       setError("Something went wrong sending your message. Please try again.");
       setMessages((prev) => prev.filter((m) => m.id !== optimisticUser.id));

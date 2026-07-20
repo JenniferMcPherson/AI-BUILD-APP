@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import * as z from "zod";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { generateBuilderReply } from "@/lib/ai";
+import { regenerateProjectPlan } from "@/lib/plan";
 
 const BodySchema = z.object({
   content: z.string().trim().min(1).max(4000),
@@ -58,6 +60,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await db.project.update({
     where: { id: projectId },
     data: { status: project.status === "DRAFT" ? "PLANNING" : project.status },
+  });
+
+  after(async () => {
+    try {
+      await regenerateProjectPlan(projectId);
+    } catch (error) {
+      console.error(`Failed to regenerate plan for project ${projectId}:`, error);
+    }
   });
 
   return NextResponse.json({ userMessage, assistantMessage });

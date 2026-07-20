@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProjectChat } from "@/components/workspace/project-chat";
+import { WorkspaceShell } from "@/components/workspace/workspace-shell";
+import type { PlanData } from "@/components/workspace/project-plan-panel";
 
 const statusLabel: Record<string, string> = {
   DRAFT: "Draft",
@@ -26,7 +27,10 @@ export default async function ProjectWorkspacePage({
 
   const project = await db.project.findFirst({
     where: { id, ownerId: userId },
-    include: { messages: { orderBy: { createdAt: "asc" } } },
+    include: {
+      messages: { orderBy: { createdAt: "asc" } },
+      plan: true,
+    },
   });
 
   if (!project) {
@@ -56,30 +60,16 @@ export default async function ProjectWorkspacePage({
         </Button>
       </div>
 
-      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_360px]">
-        <div className="flex flex-col overflow-hidden border-r border-border">
-          <ProjectChat
-            projectId={project.id}
-            initialMessages={project.messages.map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-            }))}
-          />
-        </div>
-        <aside className="hidden flex-col gap-4 overflow-y-auto p-6 lg:flex">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Project plan</h2>
-            <p className="mt-1 text-sm text-muted">
-              As you chat with the AI architect, the plan for {project.name} will take shape here.
-            </p>
-          </div>
-          <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted">
-            Live preview, code generation, and one-click deployment are coming in the next build
-            phase.
-          </div>
-        </aside>
-      </div>
+      <WorkspaceShell
+        projectId={project.id}
+        projectName={project.name}
+        initialMessages={project.messages.map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+        }))}
+        initialPlan={project.plan as PlanData}
+      />
     </div>
   );
 }
