@@ -1,0 +1,98 @@
+// Prisma schema for the AI Build App platform.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum ProjectStatus {
+  DRAFT
+  PLANNING
+  BUILDING
+  READY
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  emailVerified  DateTime?
+  passwordHash   String?
+  image          String?
+  planTier       PlanTier  @default(FREE)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  projects       Project[]
+
+  @@map("users")
+}
+
+/// OAuth / external identity provider links (Google, GitHub, etc.).
+/// Not yet wired to a live provider, but modeled now so social login
+/// can be added without a schema migration later.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  slug        String        @unique
+  status      ProjectStatus @default(DRAFT)
+  ownerId     String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([ownerId])
+  @@map("projects")
+}
+
+/// A single turn in a project's AI builder conversation.
+model Message {
+  id        String      @id @default(cuid())
+  projectId String
+  role      MessageRole
+  content   String
+  createdAt DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("messages")
+}
