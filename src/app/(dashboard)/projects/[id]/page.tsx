@@ -30,6 +30,7 @@ export default async function ProjectWorkspacePage({
     include: {
       messages: { orderBy: { createdAt: "asc" } },
       plan: true,
+      files: { orderBy: { path: "asc" } },
     },
   });
 
@@ -69,6 +70,7 @@ export default async function ProjectWorkspacePage({
           content: m.content,
         }))}
         initialPlan={project.plan as PlanData}
+        initialFiles={project.files.map((f) => ({ path: f.path, content: f.content }))}
       />
     </div>
   );

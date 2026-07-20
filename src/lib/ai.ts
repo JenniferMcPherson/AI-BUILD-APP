@@ -150,3 +150,79 @@ export async function generateProjectPlan(
   if (!toolUse) return null;
   return toolUse.input as ProjectPlanData;
 }
+
+export type GeneratedFile = { path: string; content: string };
+
+const CODE_SYSTEM_PROMPT = `You are the AI developer inside an AI-powered app-building platform.
+Given a project plan, generate a small, complete, working prototype by calling the
+save_project_files tool. Hard requirements:
+- Output a static, dependency-free prototype: exactly one "index.html" that links a
+  "styles.css" and a "app.js", plus any other files only if truly necessary.
+- No build step, no external CDNs, no frameworks — plain HTML, CSS, and vanilla JavaScript only.
+- Implement the core features from the plan at a working, demo-able level. Use
+  window.localStorage for persistence so the prototype is functional without a backend.
+- Make it look clean and modern (system-ui font, reasonable spacing and color, responsive).
+- Every file's content must be complete and immediately runnable — no placeholders like
+  "// TODO: implement" for core functionality.`;
+
+const CODE_TOOL: Anthropic.Tool = {
+  name: "save_project_files",
+  description: "Save the generated source files for the project prototype.",
+  input_schema: {
+    type: "object",
+    properties: {
+      files: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            path: { type: "string", description: 'e.g. "index.html", "styles.css", "app.js"' },
+            content: { type: "string" },
+          },
+          required: ["path", "content"],
+        },
+      },
+    },
+    required: ["files"],
+  },
+};
+
+export async function generateProjectFiles(
+  plan: ProjectPlanData,
+  projectName: string
+): Promise<GeneratedFile[] | null> {
+  if (!isAiConfigured()) return null;
+
+  const anthropic = getClient();
+
+  const planSummary = [
+    `Project: ${projectName}`,
+    `Summary: ${plan.summary}`,
+    `Features: ${plan.features.map((f) => `${f.title} — ${f.description}`).join("; ")}`,
+    `Data model: ${plan.dataModel
+      .map((e) => `${e.name}(${e.fields.map((f) => `${f.name}: ${f.type}`).join(", ")})`)
+      .join("; ")}`,
+  ].join("\n");
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-5",
+    max_tokens: 8192,
+    system: CODE_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Generate the prototype for this plan using the save_project_files tool:\n\n${planSummary}`,
+      },
+    ],
+    tools: [CODE_TOOL],
+    tool_choice: { type: "tool", name: "save_project_files" },
+  });
+
+  const toolUse = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+  );
+
+  if (!toolUse) return null;
+  const input = toolUse.input as { files: GeneratedFile[] };
+  return input.files;
+}

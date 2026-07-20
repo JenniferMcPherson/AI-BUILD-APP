@@ -1,37 +1,85 @@
 "use client";
 
 import { useState } from "react";
+import { MessagesSquare, Code2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ProjectChat, type ChatMessage } from "@/components/workspace/project-chat";
 import { ProjectPlanPanel, type PlanData } from "@/components/workspace/project-plan-panel";
+import { ProjectCodeView, type ProjectFile } from "@/components/workspace/project-code-view";
+
+type Tab = "builder" | "code";
 
 export function WorkspaceShell({
   projectId,
   projectName,
   initialMessages,
   initialPlan,
+  initialFiles,
 }: {
   projectId: string;
   projectName: string;
   initialMessages: ChatMessage[];
   initialPlan: PlanData;
+  initialFiles: ProjectFile[];
 }) {
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [tab, setTab] = useState<Tab>("builder");
 
   return (
-    <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_360px]">
-      <div className="flex flex-col overflow-hidden border-r border-border">
-        <ProjectChat
-          projectId={projectId}
-          initialMessages={initialMessages}
-          onReply={() => setRefreshSignal((n) => n + 1)}
-        />
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+        <TabButton active={tab === "builder"} onClick={() => setTab("builder")} icon={MessagesSquare}>
+          Builder
+        </TabButton>
+        <TabButton active={tab === "code"} onClick={() => setTab("code")} icon={Code2}>
+          Code
+        </TabButton>
       </div>
-      <ProjectPlanPanel
-        projectId={projectId}
-        projectName={projectName}
-        initialPlan={initialPlan}
-        refreshSignal={refreshSignal}
-      />
+
+      {tab === "builder" ? (
+        <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_360px]">
+          <div className="flex flex-col overflow-hidden border-r border-border">
+            <ProjectChat
+              projectId={projectId}
+              initialMessages={initialMessages}
+              onReply={() => setRefreshSignal((n) => n + 1)}
+            />
+          </div>
+          <ProjectPlanPanel
+            projectId={projectId}
+            projectName={projectName}
+            initialPlan={initialPlan}
+            refreshSignal={refreshSignal}
+          />
+        </div>
+      ) : (
+        <ProjectCodeView projectId={projectId} initialFiles={initialFiles} hasPlan={Boolean(initialPlan)} />
+      )}
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  icon: Icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+        active ? "bg-surface-hover text-foreground" : "text-muted hover:text-foreground"
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {children}
+    </button>
   );
 }
