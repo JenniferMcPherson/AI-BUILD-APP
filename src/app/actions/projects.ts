@@ -101,7 +101,11 @@ export async function unpublishProject(projectId: string) {
   const project = await db.project.findFirst({ where: { id: projectId, ownerId: userId } });
   if (!project) return { error: "Project not found." };
 
-  await db.project.update({ where: { id: projectId }, data: { status: "READY" } });
+  await db.project.update({
+    where: { id: projectId },
+    data: { status: "READY", listedInMarketplace: false },
+  });
   revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/marketplace");
   return { ok: true };
 }

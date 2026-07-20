@@ -60,6 +60,8 @@ export default async function ProjectWorkspacePage({
           projectSlug={project.slug}
           initialStatus={project.status}
           hasFiles={project.files.length > 0}
+          initialListed={project.listedInMarketplace}
+          initialCategory={project.category}
         />
       </div>
 

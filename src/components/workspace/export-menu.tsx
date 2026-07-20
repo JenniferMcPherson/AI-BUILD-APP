@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Download, GitBranch, Globe, Share2, Check, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { publishProject, unpublishProject } from "@/app/actions/projects";
+import { MarketplaceListing } from "@/components/workspace/marketplace-listing";
 
 type GithubStatus = { configured: boolean; connected: boolean } | null;
 
@@ -12,11 +13,15 @@ export function ExportMenu({
   projectSlug,
   initialStatus,
   hasFiles,
+  initialListed,
+  initialCategory,
 }: {
   projectId: string;
   projectSlug: string;
   initialStatus: string;
   hasFiles: boolean;
+  initialListed: boolean;
+  initialCategory: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(initialStatus);
@@ -137,6 +142,14 @@ export function ExportMenu({
                 <p className="mt-1.5 text-xs text-muted">Generate code before publishing.</p>
               )}
             </div>
+
+            <MarketplaceListing
+              projectId={projectId}
+              projectSlug={projectSlug}
+              isPublished={status === "PUBLISHED"}
+              initialListed={initialListed}
+              initialCategory={initialCategory}
+            />
 
             <div className="rounded-md border border-border p-3">
               <div className="mb-1.5 flex items-center gap-2 text-sm font-medium">

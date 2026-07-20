@@ -54,6 +54,15 @@ export const UpdateProfileSchema = z.object({
   bio: z.string().trim().max(280).optional(),
 });
 
+export const ListMarketplaceSchema = z.object({
+  category: z.string().trim().min(1, { error: "Choose a category." }).max(40),
+});
+
+export const ReviewSchema = z.object({
+  rating: z.coerce.number().int().min(1).max(5),
+  comment: z.string().trim().max(500).optional(),
+});
+
 export const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, { error: "Enter your current password." }),

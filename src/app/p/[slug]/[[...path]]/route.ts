@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { withBaseHref } from "@/lib/html";
 
 const CONTENT_TYPES: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -38,7 +39,11 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  return new NextResponse(file.content, {
+  const content = filePath.endsWith(".html")
+    ? withBaseHref(file.content, `/p/${slug}/`)
+    : file.content;
+
+  return new NextResponse(content, {
     headers: {
       "Content-Type": contentTypeFor(filePath),
       "Cache-Control": "public, max-age=60",

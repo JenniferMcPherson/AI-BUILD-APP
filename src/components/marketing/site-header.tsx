@@ -17,6 +17,9 @@ export function SiteHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
             <Link href="/discover">Discover</Link>
           </Button>
           <Button variant="ghost" asChild>
+            <Link href="/marketplace">Marketplace</Link>
+          </Button>
+          <Button variant="ghost" asChild>
             <Link href="/pricing">Pricing</Link>
           </Button>
           {isAuthenticated ? (

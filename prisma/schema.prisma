@@ -51,6 +51,7 @@ model User {
 
   accounts Account[]
   projects Project[]
+  reviews  Review[]
 
   @@map("users")
 }
@@ -76,23 +77,43 @@ model Account {
 }
 
 model Project {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  slug        String        @unique
-  status      ProjectStatus @default(DRAFT)
-  ownerId     String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  name                String
+  description         String?
+  slug                String        @unique
+  status              ProjectStatus @default(DRAFT)
+  ownerId             String
+  listedInMarketplace Boolean       @default(false)
+  category            String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   owner    User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   messages Message[]
   plan     ProjectPlan?
   files    ProjectFile[]
   versions ProjectVersion[]
+  reviews  Review[]
 
   @@index([ownerId])
+  @@index([listedInMarketplace])
   @@map("projects")
+}
+
+/// A rating + optional comment left by a user on a marketplace listing.
+model Review {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("reviews")
 }
 
 /// AI-generated project plan: features, data model, and build order.

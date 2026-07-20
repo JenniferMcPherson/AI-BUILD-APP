@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
+import { withBaseHref } from "@/lib/html";
 
 const CONTENT_TYPES: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -36,7 +37,11 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  return new NextResponse(file.content, {
+  const content = filePath.endsWith(".html")
+    ? withBaseHref(file.content, `/api/projects/${projectId}/preview/`)
+    : file.content;
+
+  return new NextResponse(content, {
     headers: {
       "Content-Type": contentTypeFor(filePath),
       "X-Frame-Options": "SAMEORIGIN",
