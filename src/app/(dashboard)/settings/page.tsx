@@ -17,6 +17,8 @@ export default async function SettingsPage() {
     select: {
       name: true,
       email: true,
+      username: true,
+      bio: true,
       planTier: true,
       passwordHash: true,
       _count: { select: { projects: true } },
@@ -38,7 +40,12 @@ export default async function SettingsPage() {
           <CardDescription>Your name and email.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm name={user.name} email={user.email} />
+          <ProfileForm
+            name={user.name}
+            email={user.email}
+            username={user.username}
+            bio={user.bio}
+          />
         </CardContent>
       </Card>
 

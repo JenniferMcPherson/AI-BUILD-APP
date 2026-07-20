@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { href: "/dashboard", label: "Projects", icon: LayoutDashboard, enabled: true },
-  { href: "/discover", label: "Discover", icon: Compass, enabled: false },
+  { href: "/discover", label: "Discover", icon: Compass, enabled: true },
   { href: "/library", label: "Library", icon: BookOpen, enabled: false },
   { href: "/settings", label: "Settings", icon: Settings, enabled: true },
 ];

@@ -43,6 +43,15 @@ export const CreateProjectSchema = z.object({
 
 export const UpdateProfileSchema = z.object({
   name: z.string().trim().min(2, { error: "Name must be at least 2 characters long." }).max(80),
+  username: z
+    .string()
+    .trim()
+    .min(3, { error: "Username must be at least 3 characters long." })
+    .max(32)
+    .regex(/^[a-z0-9-]+$/, {
+      error: "Username can only contain lowercase letters, numbers, and hyphens.",
+    }),
+  bio: z.string().trim().max(280).optional(),
 });
 
 export const ChangePasswordSchema = z

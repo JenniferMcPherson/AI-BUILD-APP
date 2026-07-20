@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
+import { slugify, withUniqueSuffix } from "@/lib/slug";
 import {
   LoginFormSchema,
   LoginFormState,
@@ -33,9 +34,10 @@ export async function signup(
   }
 
   const passwordHash = await hashPassword(password);
+  const username = withUniqueSuffix(slugify(name));
 
   const user = await db.user.create({
-    data: { name, email, passwordHash },
+    data: { name, email, passwordHash, username },
     select: { id: true },
   });
 

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, ShieldCheck, Rocket, Users, Gauge, GitBranch } from "lucide-react";
+import { getOptionalSession } from "@/lib/dal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SiteHeader } from "@/components/marketing/site-header";
 
 const features = [
   {
@@ -37,33 +39,12 @@ const features = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getOptionalSession();
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md brand-gradient text-sm font-bold text-brand-foreground">
-              <Sparkles className="h-4 w-4" />
-            </span>
-            Forge
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href="/pricing">Pricing</Link>
-            </Button>
-            <Button variant="ghost" asChild>
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/register">
-                Get started
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader isAuthenticated={Boolean(session)} />
 
       <main className="flex-1">
         <section className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 py-24 text-center sm:py-32">

@@ -9,7 +9,11 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { ChangePasswordSchema, UpdateProfileSchema } from "@/lib/validations";
 
 export type UpdateProfileState =
-  | { errors?: { name?: string[] }; message?: string; success?: boolean }
+  | {
+      errors?: { name?: string[]; username?: string[]; bio?: string[] };
+      message?: string;
+      success?: boolean;
+    }
   | undefined;
 
 export async function updateProfile(
@@ -18,12 +22,23 @@ export async function updateProfile(
 ): Promise<UpdateProfileState> {
   const { userId } = await verifySession();
 
-  const validatedFields = UpdateProfileSchema.safeParse({ name: formData.get("name") });
+  const validatedFields = UpdateProfileSchema.safeParse({
+    name: formData.get("name"),
+    username: formData.get("username"),
+    bio: formData.get("bio") || undefined,
+  });
   if (!validatedFields.success) {
     return { errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  await db.user.update({ where: { id: userId }, data: { name: validatedFields.data.name } });
+  const { name, username, bio } = validatedFields.data;
+
+  const existingUsername = await db.user.findUnique({ where: { username } });
+  if (existingUsername && existingUsername.id !== userId) {
+    return { errors: { username: ["That username is already taken."] } };
+  }
+
+  await db.user.update({ where: { id: userId }, data: { name, username, bio } });
   revalidatePath("/settings");
   return { success: true };
 }

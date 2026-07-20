@@ -35,6 +35,8 @@ enum MessageRole {
 model User {
   id                     String    @id @default(cuid())
   name                   String
+  username               String?   @unique
+  bio                    String?
   email                  String    @unique
   emailVerified          DateTime?
   passwordHash           String?
