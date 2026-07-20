@@ -52,6 +52,7 @@ model User {
   accounts Account[]
   projects Project[]
   reviews  Review[]
+  articles Article[]
 
   @@map("users")
 }
@@ -180,4 +181,24 @@ model Message {
 
   @@index([projectId, createdAt])
   @@map("messages")
+}
+
+/// A community-contributed educational article. Supports citations so
+/// original sources can be credited rather than presented as the author's own.
+model Article {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  excerpt   String
+  content   String
+  /// Array of { text: string, url?: string }
+  citations Json     @default("[]")
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@map("articles")
 }

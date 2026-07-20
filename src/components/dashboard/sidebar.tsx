@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Sparkles, Settings, Compass, BookOpen } from "lucide-react";
+import { LayoutDashboard, Sparkles, Settings, Compass, BookOpen, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 const navItems = [
-  { href: "/dashboard", label: "Projects", icon: LayoutDashboard, enabled: true },
-  { href: "/discover", label: "Discover", icon: Compass, enabled: true },
-  { href: "/library", label: "Library", icon: BookOpen, enabled: false },
-  { href: "/settings", label: "Settings", icon: Settings, enabled: true },
+  { href: "/dashboard", label: "Projects", icon: LayoutDashboard },
+  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/marketplace", label: "Marketplace", icon: Store },
+  { href: "/library", label: "Library", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -28,21 +28,6 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
-
-          if (!item.enabled) {
-            return (
-              <span
-                key={item.href}
-                className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted/60"
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-                <Badge variant="outline" className="ml-auto text-[10px]">
-                  Soon
-                </Badge>
-              </span>
-            );
-          }
 
           return (
             <Link

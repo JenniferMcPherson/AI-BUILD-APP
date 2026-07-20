@@ -63,6 +63,25 @@ export const ReviewSchema = z.object({
   comment: z.string().trim().max(500).optional(),
 });
 
+export const ArticleSchema = z.object({
+  title: z.string().trim().min(4, { error: "Title must be at least 4 characters long." }).max(120),
+  excerpt: z
+    .string()
+    .trim()
+    .min(10, { error: "Excerpt must be at least 10 characters long." })
+    .max(240),
+  content: z
+    .string()
+    .trim()
+    .min(100, { error: "Content must be at least 100 characters long." })
+    .max(20000),
+});
+
+export const CitationSchema = z.object({
+  text: z.string().trim().min(1).max(200),
+  url: z.url({ error: "Enter a valid URL." }).optional().or(z.literal("")),
+});
+
 export const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, { error: "Enter your current password." }),

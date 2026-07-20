@@ -12,12 +12,15 @@ export function SiteHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
           </span>
           Forge
         </Link>
-        <nav className="flex items-center gap-2">
-          <Button variant="ghost" asChild>
+        <nav className="flex items-center gap-1">
+          <Button variant="ghost" className="hidden sm:inline-flex" asChild>
             <Link href="/discover">Discover</Link>
           </Button>
-          <Button variant="ghost" asChild>
+          <Button variant="ghost" className="hidden sm:inline-flex" asChild>
             <Link href="/marketplace">Marketplace</Link>
+          </Button>
+          <Button variant="ghost" className="hidden md:inline-flex" asChild>
+            <Link href="/library">Library</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/pricing">Pricing</Link>
