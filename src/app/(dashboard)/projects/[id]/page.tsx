@@ -38,6 +38,12 @@ export default async function ProjectWorkspacePage({
     notFound();
   }
 
+  const collections = await db.collection.findMany({
+    where: { ownerId: userId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true },
+  });
+
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
@@ -62,6 +68,8 @@ export default async function ProjectWorkspacePage({
           hasFiles={project.files.length > 0}
           initialListed={project.listedInMarketplace}
           initialCategory={project.category}
+          collections={collections}
+          initialCollectionId={project.collectionId}
         />
       </div>
 

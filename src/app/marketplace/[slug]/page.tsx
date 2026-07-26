@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { UseTemplateButton } from "@/components/marketplace/use-template-button";
+import { MessageCreatorForm } from "@/components/creator/message-creator-form";
+import { ReportDialog } from "@/components/creator/report-dialog";
+import { reportProject } from "@/app/actions/reports";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -39,6 +42,10 @@ export default async function MarketplaceListingPage({
         orderBy: { createdAt: "desc" },
         include: { user: { select: { name: true } } },
       },
+      clonedFrom: {
+        select: { name: true, slug: true, owner: { select: { name: true, username: true } } },
+      },
+      _count: { select: { clones: true } },
     },
   });
 
@@ -78,8 +85,27 @@ export default async function MarketplaceListingPage({
             project.owner.name
           )}
         </p>
+        {project.clonedFrom && (
+          <p className="mt-1 text-xs text-muted">
+            Based on{" "}
+            {project.clonedFrom.owner.username ? (
+              <Link href={`/marketplace/${project.clonedFrom.slug}`} className="text-brand hover:underline">
+                {project.clonedFrom.name}
+              </Link>
+            ) : (
+              project.clonedFrom.name
+            )}{" "}
+            by {project.clonedFrom.owner.name}
+          </p>
+        )}
+        {project._count.clones > 0 && (
+          <p className="mt-1 text-xs text-muted">
+            Used as a starting point by {project._count.clones} builder
+            {project._count.clones === 1 ? "" : "s"}
+          </p>
+        )}
 
-        <div className="mt-6 flex items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           {!isOwner &&
             (session ? (
               <UseTemplateButton projectSlug={project.slug} />
@@ -94,6 +120,8 @@ export default async function MarketplaceListingPage({
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>
+          {session && !isOwner && <MessageCreatorForm projectSlug={project.slug} creatorName={project.owner.name} />}
+          {session && !isOwner && <ReportDialog label="listing" action={reportProject.bind(null, project.id)} />}
         </div>
 
         <div className="mt-8 overflow-hidden rounded-lg border border-border">

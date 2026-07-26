@@ -123,6 +123,7 @@ export async function cloneProjectAsTemplate(projectSlug: string) {
       slug,
       ownerId: userId,
       status: "READY",
+      clonedFromId: source.id,
       plan: source.plan
         ? {
             create: {

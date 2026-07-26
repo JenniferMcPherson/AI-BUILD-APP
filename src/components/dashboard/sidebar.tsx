@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Sparkles, Settings, Compass, BookOpen, Store } from "lucide-react";
+import { LayoutDashboard, Sparkles, Settings, Compass, BookOpen, Store, UserRound, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Projects", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Projects", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/creator", label: "Creator", icon: UserRound },
+  { href: "/dashboard/following", label: "Following", icon: Users },
   { href: "/discover", label: "Discover", icon: Compass },
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/library", label: "Library", icon: BookOpen },
@@ -26,7 +28,9 @@ export function Sidebar() {
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = item.exact
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
 
           return (

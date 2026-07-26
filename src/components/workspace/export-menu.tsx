@@ -5,6 +5,7 @@ import { Download, GitBranch, Globe, Share2, Check, Copy, ExternalLink } from "l
 import { Button } from "@/components/ui/button";
 import { publishProject, unpublishProject } from "@/app/actions/projects";
 import { MarketplaceListing } from "@/components/workspace/marketplace-listing";
+import { CollectionPicker } from "@/components/creator/collection-picker";
 
 type GithubStatus = { configured: boolean; connected: boolean } | null;
 
@@ -15,6 +16,8 @@ export function ExportMenu({
   hasFiles,
   initialListed,
   initialCategory,
+  collections,
+  initialCollectionId,
 }: {
   projectId: string;
   projectSlug: string;
@@ -22,6 +25,8 @@ export function ExportMenu({
   hasFiles: boolean;
   initialListed: boolean;
   initialCategory: string | null;
+  collections: { id: string; title: string }[];
+  initialCollectionId: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(initialStatus);
@@ -149,6 +154,12 @@ export function ExportMenu({
               isPublished={status === "PUBLISHED"}
               initialListed={initialListed}
               initialCategory={initialCategory}
+            />
+
+            <CollectionPicker
+              projectId={projectId}
+              collections={collections}
+              initialCollectionId={initialCollectionId}
             />
 
             <div className="rounded-md border border-border p-3">

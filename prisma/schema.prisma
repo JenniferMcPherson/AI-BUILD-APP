@@ -32,11 +32,30 @@ enum MessageRole {
   SYSTEM
 }
 
+enum ReportTargetType {
+  CREATOR
+  PROJECT
+}
+
+enum ReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String
   username               String?   @unique
   bio                    String?
+  /// Where the creator is based. Free-text and self-reported.
+  location               String?
+  /// Short line describing what they build (their "craft specialty").
+  tagline                String?
+  /// Longer biography: their journey, inspiration, and why they build.
+  story                  String?
+  /// How they approach building — tools, process, principles.
+  buildProcess           String?
   email                  String    @unique
   emailVerified          DateTime?
   passwordHash           String?
@@ -50,14 +69,97 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  accounts      Account[]
-  projects      Project[]
-  reviews       Review[]
-  articles      Article[]
-  invitesSent   InviteCode[] @relation("InvitesSent")
-  invitedByCode InviteCode?  @relation("InviteUsed")
+  accounts         Account[]
+  projects         Project[]
+  reviews          Review[]
+  articles         Article[]
+  invitesSent      InviteCode[]     @relation("InvitesSent")
+  invitedByCode    InviteCode?      @relation("InviteUsed")
+  following        Follow[]         @relation("UserFollowing")
+  followers        Follow[]         @relation("UserFollowers")
+  collections      Collection[]
+  sentMessages     CreatorMessage[] @relation("SentCreatorMessages")
+  receivedMessages CreatorMessage[] @relation("ReceivedCreatorMessages")
+  reportsFiled     Report[]         @relation("ReportsFiled")
+  reportsReceived  Report[]         @relation("ReportsAgainstUser")
 
   @@map("users")
+}
+
+/// One user following a creator, to see their new published work.
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  creatorId  String
+  createdAt  DateTime @default(now())
+
+  follower User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  creator  User @relation("UserFollowers", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId])
+  @@map("follows")
+}
+
+/// A creator-curated grouping of their own projects (e.g. a themed set of templates).
+model Collection {
+  id          String   @id @default(cuid())
+  ownerId     String
+  title       String
+  slug        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projects Project[]
+
+  @@unique([ownerId, slug])
+  @@index([ownerId])
+  @@map("collections")
+}
+
+/// A question sent to a creator about one of their marketplace listings.
+model CreatorMessage {
+  id          String    @id @default(cuid())
+  projectId   String
+  senderId    String
+  recipientId String
+  body        String
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender    User    @relation("SentCreatorMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User    @relation("ReceivedCreatorMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([recipientId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("creator_messages")
+}
+
+/// A report against a creator or a marketplace listing, awaiting moderation.
+model Report {
+  id              String           @id @default(cuid())
+  reporterId      String
+  targetType      ReportTargetType
+  targetUserId    String?
+  targetProjectId String?
+  reason          String
+  details         String?
+  status          ReportStatus     @default(OPEN)
+  createdAt       DateTime         @default(now())
+
+  reporter      User     @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser    User?    @relation("ReportsAgainstUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetProject Project? @relation(fields: [targetProjectId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([targetUserId])
+  @@index([targetProjectId])
+  @@index([status])
+  @@map("reports")
 }
 
 /// A single-use invite code a user can generate and share. Redeeming one at
@@ -107,18 +209,27 @@ model Project {
   listedInMarketplace Boolean       @default(false)
   category            String?
   viewCount           Int           @default(0)
+  collectionId        String?
+  clonedFromId        String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
-  owner    User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  messages Message[]
-  plan     ProjectPlan?
-  files    ProjectFile[]
-  versions ProjectVersion[]
-  reviews  Review[]
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  collection      Collection?      @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  clonedFrom      Project?         @relation("ProjectClones", fields: [clonedFromId], references: [id], onDelete: SetNull)
+  clones          Project[]        @relation("ProjectClones")
+  messages        Message[]
+  plan            ProjectPlan?
+  files           ProjectFile[]
+  versions        ProjectVersion[]
+  reviews         Review[]
+  creatorMessages CreatorMessage[]
+  reports         Report[]
 
   @@index([ownerId])
   @@index([listedInMarketplace])
+  @@index([collectionId])
+  @@index([clonedFromId])
   @@map("projects")
 }
 

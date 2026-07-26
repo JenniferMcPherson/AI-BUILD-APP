@@ -82,6 +82,31 @@ export const CitationSchema = z.object({
   url: z.url({ error: "Enter a valid URL." }).optional().or(z.literal("")),
 });
 
+export const CreatorProfileSchema = z.object({
+  location: z.string().trim().max(80).optional().or(z.literal("")),
+  tagline: z.string().trim().max(100).optional().or(z.literal("")),
+  story: z.string().trim().max(4000).optional().or(z.literal("")),
+  buildProcess: z.string().trim().max(4000).optional().or(z.literal("")),
+});
+
+export const CollectionSchema = z.object({
+  title: z.string().trim().min(2, { error: "Title must be at least 2 characters long." }).max(80),
+  description: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
+export const CreatorMessageSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, { error: "Write a message before sending." })
+    .max(2000, { error: "Keep it under 2000 characters." }),
+});
+
+export const ReportSchema = z.object({
+  reason: z.string().trim().min(1, { error: "Choose a reason." }).max(60),
+  details: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
 export const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, { error: "Enter your current password." }),
